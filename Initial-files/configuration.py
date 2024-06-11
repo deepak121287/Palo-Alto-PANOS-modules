@@ -142,7 +142,7 @@ def main():
         return
     
     try:
-        secret_dict = json.loads(secret_str)
+        secret_dict = json.loads(secret_str, strict=False)
         private_key_str = secret_dict.get('ssh-key')
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e}")
