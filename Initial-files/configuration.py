@@ -2,37 +2,39 @@ import paramiko
 import boto3
 import time
 
-client = boto3.client('secretsmanager', region_name='us-east-1')
-
-secret_name = 'your-secret-name'
-response = client.get_secret_value(SecretId=secret_name)
-secret_value = response['SecretString']
-
-def change_firewall_password():
+def get_secret(secret_name, region_name):
     
-    host = '52.73.195.112'
-    username = 'admin'
-    private_key_path = 'C:/Users/deepa/Downloads/keys/PA-keypair.pem'
-    new_password = 'Admin@123!'
+    session = boto3.session.Session()
+    client = session.client(service_name='secretsmanager', region_name= region_name)
+
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+    except Exception as e:
+        print(f"Error fetching secret {secret_name}: {e}")
+        return None
+    
+    secret = get_secret_value_response['SecretString']
+    return secret
+
+def change_firewall_password(hostname,username,private_key,new_password):
 
     ssh_client = None
     
     try:
         
-        with open(private_key_path, 'r') as key_file:
-            key_contents = key_file.read()
-            if not key_contents.startswith('-----BEGIN RSA PRIVATE KEY-----'):
-                raise ValueError("The private key file does not start with '-----BEGIN RSA PRIVATE KEY-----'")
-            print("Private key file is valid.")
+        # with open(private_key_path, 'r') as key_file:
+        #     key_contents = key_file.read()
+        #     if not key_contents.startswith('-----BEGIN RSA PRIVATE KEY-----'):
+        #         raise ValueError("The private key file does not start with '-----BEGIN RSA PRIVATE KEY-----'")
+        #     print("Private key file is valid.")
 
         
-        private_key = paramiko.RSAKey.from_private_key_file(private_key_path)
+        # private_key = paramiko.RSAKey.from_private_key_file(private_key_path)
 
-        
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        ssh_client.connect(hostname=host, username=username, pkey=private_key)
+        ssh_client.connect(hostname=hostname, username=username, pkey=private_key)
         print("SSH connection established.")
 
         def send_command(command, wait_time=5):
@@ -76,9 +78,6 @@ def change_firewall_password():
         output = ssh_shell.recv(10000).decode()
         print(output)
 
-    except FileNotFoundError as e:
-        print(f"Private key file not found: {private_key_path}")
-        print(f"Error: {e}")
     except paramiko.SSHException as e:
         print("SSH connection failed")
         print(f"Error: {e}")
@@ -91,5 +90,22 @@ def change_firewall_password():
             ssh_client.close()
             print("SSH connection closed.")
 
+def main():
+    
+    secret_name = "ec2secret"
+    region_name = "us-east-1"
+    hostname = input("Enter the hostname/IP: ")
+    username = input("Enter the Palo Alto firewall username: ")
+    new_password = input("Enter the new password: ") 
+
+    private_key_str = get_secret(secret_name, region_name)
+    if private_key_str is None:
+        print("Could not fetch the private key from Secrets Manager")
+        return
+
+    private_key = paramiko.RSAKey.from_private_key(private_key_str)
+    
+    change_firewall_password(hostname,username,private_key,new_password)
+
 if __name__ == "__main__":
-    change_firewall_password()
+    main()
