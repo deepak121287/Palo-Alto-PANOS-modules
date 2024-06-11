@@ -27,11 +27,17 @@ def get_secret(secret_name, region_name):
     return None
 
 def format_key(private_key_str):
-    """Ensure the private key has the correct PEM format."""
+
+    private_key_str = private_key_str.strip()
+    
     if not private_key_str.startswith("-----BEGIN RSA PRIVATE KEY-----"):
         private_key_str = "-----BEGIN RSA PRIVATE KEY-----\n" + private_key_str
     if not private_key_str.endswith("-----END RSA PRIVATE KEY-----"):
         private_key_str = private_key_str + "\n-----END RSA PRIVATE KEY-----"
+    
+    private_key_lines = private_key_str.splitlines()
+    private_key_str = "\n".join(line.strip() for line in private_key_lines if line.strip())
+    
     return private_key_str
 
 
@@ -42,13 +48,19 @@ def change_firewall_password(hostname,username,private_key_str,new_password):
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     
     private_key_str = format_key(private_key_str)
+    print("Formatted Private Key:\n", private_key_str)
 
     with tempfile.NamedTemporaryFile(delete=False,mode='w') as temp_key_file:
         temp_key_file.write(private_key_str)
         temp_key_file_path = temp_key_file.name
         
     if platform.system() != 'Windows':
-        os.chmod(temp_key_file_path, 0o400)   
+        os.chmod(temp_key_file_path, 0o400)
+
+    print(f"Temporary key file path: {temp_key_file_path}")
+    with open(temp_key_file_path, 'r') as f:
+        print("Content of temp key file:")
+        print(f.read())
     
     try:
         private_key = paramiko.RSAKey.from_private_key_file(temp_key_file_path)
@@ -118,7 +130,7 @@ def change_firewall_password(hostname,username,private_key_str,new_password):
 
 def main():
     
-    secret_name = "ec2secret2"
+    secret_name = "ec2key"
     region_name = "us-east-1"
     hostname = input("Enter the hostname/IP: ")
     username = input("Enter the Palo Alto firewall username: ")
