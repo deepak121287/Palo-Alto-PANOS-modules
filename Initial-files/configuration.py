@@ -98,7 +98,7 @@ def change_firewall_password(hostname,username,private_key_str,new_password):
 
 def main():
     
-    secret_name = "ec2secret"
+    secret_name = "ec2secret2"
     region_name = "us-east-1"
     hostname = input("Enter the hostname/IP: ")
     username = input("Enter the Palo Alto firewall username: ")
