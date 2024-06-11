@@ -48,7 +48,7 @@ def change_firewall_password(hostname,username,private_key_str,new_password):
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     
     private_key_str = format_key(private_key_str)
-    print("Formatted Private Key:\n", private_key_str)
+    #print("Formatted Private Key:\n", private_key_str)
 
     with tempfile.NamedTemporaryFile(delete=False,mode='w') as temp_key_file:
         temp_key_file.write(private_key_str)
@@ -57,10 +57,10 @@ def change_firewall_password(hostname,username,private_key_str,new_password):
     if platform.system() != 'Windows':
         os.chmod(temp_key_file_path, 0o400)
 
-    print(f"Temporary key file path: {temp_key_file_path}")
-    with open(temp_key_file_path, 'r') as f:
-        print("Content of temp key file:")
-        print(f.read())
+    # print(f"Temporary key file path: {temp_key_file_path}")
+    # with open(temp_key_file_path, 'r') as f:
+    #     print("Content of temp key file:")
+    #     print(f.read())
     
     try:
         private_key = paramiko.RSAKey.from_private_key_file(temp_key_file_path)
