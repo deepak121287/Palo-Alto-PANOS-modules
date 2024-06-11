@@ -26,11 +26,22 @@ def get_secret(secret_name, region_name):
         print(f"Unexpected error: {e}")
     return None
 
+def format_key(private_key_str):
+    """Ensure the private key has the correct PEM format."""
+    if not private_key_str.startswith("-----BEGIN RSA PRIVATE KEY-----"):
+        private_key_str = "-----BEGIN RSA PRIVATE KEY-----\n" + private_key_str
+    if not private_key_str.endswith("-----END RSA PRIVATE KEY-----"):
+        private_key_str = private_key_str + "\n-----END RSA PRIVATE KEY-----"
+    return private_key_str
+
+
 def change_firewall_password(hostname,username,private_key_str,new_password):
 
     ssh_client = None
     ssh_client = paramiko.SSHClient()
-    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())   
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    
+    private_key_str = format_key(private_key_str)
 
     with tempfile.NamedTemporaryFile(delete=False,mode='w') as temp_key_file:
         temp_key_file.write(private_key_str)
