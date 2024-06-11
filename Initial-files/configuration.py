@@ -1,6 +1,8 @@
 import paramiko
 import boto3
 import time
+import base64
+import json
 
 def get_secret(secret_name, region_name):
     
