@@ -2,6 +2,12 @@ import paramiko
 import boto3
 import time
 
+client = boto3.client('secretsmanager', region_name='us-east-1')
+
+secret_name = 'your-secret-name'
+response = client.get_secret_value(SecretId=secret_name)
+secret_value = response['SecretString']
+
 def change_firewall_password():
     
     host = '52.73.195.112'
