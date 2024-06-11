@@ -109,8 +109,12 @@ def main():
         print("Could not fetch the private key from Secrets Manager")
         return
     
-    secret_dict = json.loads(secret_str)
-    private_key_str = secret_dict.get('ssh-key')
+    try:
+        secret_dict = json.loads(secret_str)
+        private_key_str = secret_dict.get('ssh-key')
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON: {e}")
+        return
 
     if private_key_str is None:
         print("No ssh-key found in the secret")
