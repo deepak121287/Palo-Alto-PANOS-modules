@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import tempfile
+import platform
 
 def get_secret(secret_name, region_name):
     
@@ -31,11 +32,12 @@ def change_firewall_password(hostname,username,private_key_str,new_password):
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())   
 
-    with tempfile.NamedTemporaryFile(delete=False) as temp_key_file:
-        temp_key_file.write(private_key_str.encode('utf-8'))
+    with tempfile.NamedTemporaryFile(delete=False,mode='w') as temp_key_file:
+        temp_key_file.write(private_key_str)
         temp_key_file_path = temp_key_file.name
         
-    os.chmod(temp_key_file_path, 0o400)    
+    if platform.system() != 'Windows':
+        os.chmod(temp_key_file_path, 0o400)   
     
     try:
         private_key = paramiko.RSAKey.from_private_key_file(temp_key_file_path)
