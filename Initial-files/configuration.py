@@ -1,4 +1,5 @@
 import paramiko
+import boto3
 import time
 
 def change_firewall_password():
