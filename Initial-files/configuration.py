@@ -3,6 +3,7 @@ import boto3
 import time
 import base64
 import json
+import os
 
 def get_secret(secret_name, region_name):
     
@@ -11,31 +12,33 @@ def get_secret(secret_name, region_name):
 
     try:
         get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+        secret = get_secret_value_response['SecretString']
+        return secret
+    except client.exceptions.ResourceNotFoundException:
+        print(f"Error: The requested secret {secret_name} was not found")
+    except client.exceptions.InvalidRequestException:
+        print(f"Error: The request was invalid due to: {e}")
+    except client.exceptions.InvalidParameterException:
+        print(f"Error: The request had invalid params: {e}")
     except Exception as e:
-        print(f"Error fetching secret {secret_name}: {e}")
-        return None
-    
-    secret = get_secret_value_response['SecretString']
-    return secret
+        print(f"Unexpected error: {e}")
+    return None
 
-def change_firewall_password(hostname,username,private_key,new_password):
+def change_firewall_password(hostname,username,private_key_str,new_password):
 
     ssh_client = None
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())   
+
+    temp_key_file = "/tmp/temp_key.pem"
+    with open(temp_key_file, 'w') as key_file:
+        key_file.write(private_key_str)
+    os.chmod(temp_key_file, 0o400)    
+    
+    private_key = paramiko.RSAKey.from_private_key_file(temp_key_file)
     
     try:
         
-        # with open(private_key_path, 'r') as key_file:
-        #     key_contents = key_file.read()
-        #     if not key_contents.startswith('-----BEGIN RSA PRIVATE KEY-----'):
-        #         raise ValueError("The private key file does not start with '-----BEGIN RSA PRIVATE KEY-----'")
-        #     print("Private key file is valid.")
-
-        
-        # private_key = paramiko.RSAKey.from_private_key_file(private_key_path)
-
-        ssh_client = paramiko.SSHClient()
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
         ssh_client.connect(hostname=hostname, username=username, pkey=private_key)
         print("SSH connection established.")
 
@@ -90,6 +93,7 @@ def change_firewall_password(hostname,username,private_key,new_password):
     finally:
         if ssh_client and ssh_client.get_transport() and ssh_client.get_transport().is_active():
             ssh_client.close()
+            os.remove(temp_key_file)
             print("SSH connection closed.")
 
 def main():
@@ -100,14 +104,19 @@ def main():
     username = input("Enter the Palo Alto firewall username: ")
     new_password = input("Enter the new password: ") 
 
-    private_key_str = get_secret(secret_name, region_name)
-    if private_key_str is None:
+    secret_str = get_secret(secret_name, region_name)
+    if secret_str is None:
         print("Could not fetch the private key from Secrets Manager")
         return
-
-    private_key = paramiko.RSAKey.from_private_key(private_key_str)
     
-    change_firewall_password(hostname,username,private_key,new_password)
+    secret_dict = json.loads(secret_str)
+    private_key_str = secret_dict.get('ssh-key')
+
+    if private_key_str is None:
+        print("No ssh-key found in the secret")
+        return
+    
+    change_firewall_password(hostname,username,private_key_str,new_password)
 
 if __name__ == "__main__":
     main()
