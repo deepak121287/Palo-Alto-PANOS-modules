@@ -35,7 +35,7 @@ def change_firewall_password(hostname,username,private_key_str,new_password):
         temp_key_file.write(private_key_str.encode('utf-8'))
         temp_key_file_path = temp_key_file.name
         
-    os.chmod(temp_key_file, 0o400)    
+    os.chmod(temp_key_file_path, 0o400)    
     
     try:
         private_key = paramiko.RSAKey.from_private_key_file(temp_key_file_path)
@@ -100,7 +100,7 @@ def change_firewall_password(hostname,username,private_key_str,new_password):
     finally:
         if ssh_client and ssh_client.get_transport() and ssh_client.get_transport().is_active():
             ssh_client.close()
-            os.remove(temp_key_file)
+            os.remove(temp_key_file_path)
             print("SSH connection closed.")
 
 def main():
